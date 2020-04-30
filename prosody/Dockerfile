@@ -49,6 +49,13 @@ RUN \
 
 RUN patch -d /usr/lib/prosody/modules/muc -p0 < /prosody-plugins/muc_owner_allow_kick.patch
 
+#RUN wget -O /tmp/http.patch https://github.com/bjc/prosody/commit/a56dab0d87d19c507f66bf4b8284aa000b81d334.patch
+#RUN patch -d /usr/lib/prosody/ -p1 < /tmp/http.patch
+#RUN wget -O /tmp/luajwtjitsi.lua.patch https://gist.githubusercontent.com/goacid/43b804387ff3428762d633c0f305a9a2/raw/94731cec0605ce9769f8c519066e92369ab9f14e/luajwtjitsi.lua.patch
+#RUN patch -d /usr/local/share/lua/5.2 -p1 < /tmp/luajwtjitsi.lua.patch
+RUN sed -i -Ee 's/(return nil, "Invalid typ")/--\1/g' /usr/local/share/lua/5.2/luajwtjitsi.lua
+RUN sed -i -Ee 's/(basic_resolver.new\(host, port_number)(\);)/\1, "tcp", { servername = req.host }\2/g'  /usr/lib/prosody/net/http.lua
+
 COPY rootfs/ /
 
 COPY --from=builder /usr/local/lib/lua /usr/local/lib/lua
