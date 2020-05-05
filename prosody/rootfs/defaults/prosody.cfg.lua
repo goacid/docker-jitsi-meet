@@ -1,3 +1,5 @@
+{{ $LOG_LEVEL := .Env.LOG_LEVEL | default "info" }}
+
 -- Prosody Example Configuration File
 --
 -- Information on configuring Prosody can be found on our
@@ -70,6 +72,9 @@ modules_enabled = {
 		--"watchregistrations"; -- Alert admins of registrations
 		--"motd"; -- Send a message to users when they log in
 		--"legacyauth"; -- Legacy authentication. Only used by some old clients and bots.
+        {{ if .Env.GLOBAL_MODULES }}
+        "{{ join "\";\n\"" (splitList "," .Env.GLOBAL_MODULES) }}";
+        {{ end }}
 };
 
 https_ports = { }
@@ -121,7 +126,7 @@ s2s_secure_auth = false
 -- server please see http://prosody.im/doc/modules/mod_auth_internal_hashed
 -- for information about using the hashed backend.
 
-authentication = "internal_plain"
+authentication = "internal_hashed"
 
 -- Select the storage backend to use. By default Prosody uses flat files
 -- in its configured data directory, but it also supports more backends
@@ -143,7 +148,18 @@ authentication = "internal_plain"
 --  Logs info and higher to /var/log
 --  Logs errors to syslog also
 log = {
-	{ levels = {min = "info"}, to = "console"};
+	{ levels = {min = "{{ $LOG_LEVEL }}"}, to = "console"};
+}
+
+{{ if .Env.GLOBAL_CONFIG }}
+{{ join "\n" (splitList "\\n" .Env.GLOBAL_CONFIG) }}
+{{ end }}
+
+-- Enable use of native prosody 0.11 support for epoll over select
+network_backend = "epoll";
+-- Set the TCP backlog to 511 since the kernel rounds it up to the next power of 2: 512.
+network_settings = {
+  tcp_backlog = 511;
 }
 
 component_interface = { "*" }

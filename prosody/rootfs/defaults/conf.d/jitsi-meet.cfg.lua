@@ -4,6 +4,10 @@ http_default_host = "{{ .Env.XMPP_DOMAIN }}"
 
 {{ $ENABLE_AUTH := .Env.ENABLE_AUTH | default "0" | toBool }}
 {{ $AUTH_TYPE := .Env.AUTH_TYPE | default "internal" }}
+{{ $JWT_ASAP_KEYSERVER := .Env.JWT_ASAP_KEYSERVER | default "" }}
+{{ $JWT_ALLOW_EMPTY := .Env.JWT_ALLOW_EMPTY | default "0" | toBool }}
+{{ $JWT_AUTH_TYPE := .Env.JWT_AUTH_TYPE | default "token" }}
+{{ $JWT_TOKEN_AUTH_MODULE := .Env.JWT_TOKEN_AUTH_MODULE | default "token_verification" }}
 
 {{ if and $ENABLE_AUTH (eq $AUTH_TYPE "jwt") .Env.JWT_ACCEPTED_ISSUERS }}
 asap_accepted_issuers = { "{{ join "\",\"" (splitList "," .Env.JWT_ACCEPTED_ISSUERS) }}" }
@@ -16,16 +20,20 @@ asap_accepted_audiences = { "{{ join "\",\"" (splitList "," .Env.JWT_ACCEPTED_AU
 VirtualHost "{{ .Env.XMPP_DOMAIN }}"
 {{ if $ENABLE_AUTH }}
   {{ if eq $AUTH_TYPE "jwt" }}
-    authentication = "token"
+    authentication = "{{ $JWT_AUTH_TYPE }}"
     app_id = "{{ .Env.JWT_APP_ID }}"
     app_secret = "{{ .Env.JWT_APP_SECRET }}"
-    allow_empty_token = false
-  {{ else if eq $AUTH_TYPE "ldap" }}
+    allow_empty_token = {{ if $JWT_ALLOW_EMPTY }}true{{ else }}false{{ end }}
+    {{ if $JWT_ASAP_KEYSERVER }}
+    asap_key_server = "{{ .Env.JWT_ASAP_KEYSERVER }}"
+    {{ end }}
+
+    {{ else if eq $AUTH_TYPE "ldap" }}
     authentication = "cyrus"
     cyrus_application_name = "xmpp"
     allow_unencrypted_plain_auth = true
   {{ else if eq $AUTH_TYPE "internal" }}
-    authentication = "internal_plain"
+    authentication = "internal_hashed"
   {{ end }}
 {{ else }}
     authentication = "anonymous"
@@ -38,6 +46,8 @@ VirtualHost "{{ .Env.XMPP_DOMAIN }}"
         "bosh";
         "pubsub";
         "ping";
+        "speakerstats";
+        "conference_duration";
         {{ if .Env.XMPP_MODULES }}
         "{{ join "\";\n\"" (splitList "," .Env.XMPP_MODULES) }}";
         {{ end }}
@@ -45,6 +55,9 @@ VirtualHost "{{ .Env.XMPP_DOMAIN }}"
         "auth_cyrus";
         {{end}}
     }
+
+    speakerstats_component = "speakerstats.{{ .Env.XMPP_DOMAIN }}"
+    conference_duration_component = "conferenceduration.{{ .Env.XMPP_DOMAIN }}"
 
     c2s_require_encryption = false
 
@@ -59,7 +72,15 @@ VirtualHost "{{ .Env.XMPP_AUTH_DOMAIN }}"
         key = "/config/certs/{{ .Env.XMPP_AUTH_DOMAIN }}.key";
         certificate = "/config/certs/{{ .Env.XMPP_AUTH_DOMAIN }}.crt";
     }
-    authentication = "internal_plain"
+    authentication = "internal_hashed"
+
+{{ if .Env.XMPP_RECORDER_DOMAIN }}
+VirtualHost "{{ .Env.XMPP_RECORDER_DOMAIN }}"
+    modules_enabled = {
+      "ping";
+    }
+    authentication = "internal_hashed"
+{{ end }}
 
 Component "{{ .Env.XMPP_INTERNAL_MUC_DOMAIN }}" "muc"
     modules_enabled = {
@@ -77,11 +98,18 @@ Component "{{ .Env.XMPP_MUC_DOMAIN }}" "muc"
         {{ if .Env.XMPP_MUC_MODULES }}
         "{{ join "\";\n\"" (splitList "," .Env.XMPP_MUC_MODULES) }}";
         {{ end }}
-        {{ if eq $AUTH_TYPE "jwt" }}
-        "token_verification";
+        {{ if and $ENABLE_AUTH (eq $AUTH_TYPE "jwt") }}
+        "{{ $JWT_TOKEN_AUTH_MODULE }}";
         {{ end }}
     }
+    muc_room_locking = false
+    muc_room_default_public_jids = true
 
 Component "focus.{{ .Env.XMPP_DOMAIN }}"
     component_secret = "{{ .Env.JICOFO_COMPONENT_SECRET }}"
 
+Component "speakerstats.{{ .Env.XMPP_DOMAIN }}" "speakerstats_component"
+    muc_component = "{{ .Env.XMPP_MUC_DOMAIN }}"
+
+Component "conferenceduration.{{ .Env.XMPP_DOMAIN }}" "conference_duration_component"
+    muc_component = "{{ .Env.XMPP_MUC_DOMAIN }}"
