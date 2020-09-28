@@ -8,4 +8,9 @@ RUN \
 
 COPY rootfs/ /
 
+RUN cd /tmp && \ 
+	wget http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.0.0_1.0.1t-1+deb8u12_amd64.deb  && \
+	dpkg -i libssl1.0.0_1.0.1t-1+deb8u12_amd64.deb && \
+	rm libssl1.0.0_1.0.1t-1+deb8u12_amd64.deb
+
 VOLUME /config
