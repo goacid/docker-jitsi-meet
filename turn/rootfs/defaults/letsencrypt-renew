@@ -1,6 +1,9 @@
 #!/bin/bash
 
-certbot --no-self-upgrade -n renew >> /config/le-renew.log
+certbot --config-dir /config/letsencrypt --no-self-upgrade -n renew >> /config/le-renew.log
+
+cp -f /config/letsencrypt/live/$LETSENCRYPT_DOMAIN/fullchain.pem /config/keys/cert.crt
+cp -f /config/letsencrypt/live/$LETSENCRYPT_DOMAIN/privkey.pem /config/keys/cert.key
 
 # Not sur it reload the service ...
 /bin/kill -HUP `cat /var/run/turnserver.pid 2>/dev/null` 2> /dev/null || true

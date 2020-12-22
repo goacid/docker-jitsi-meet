@@ -6,7 +6,7 @@ services:
         image: jitsi/turn
         restart: always
         volumes:
-            - ${CONFIG}/turn:/config
+            - ${CONFIG}/turn:/config:Z
         ports:
             - '${TURN_PORT}:${TURN_PORT}/tcp'
             - '${TURN_PORT}:${TURN_PORT}/udp'
@@ -34,3 +34,5 @@ services:
         networks:
             meet.jitsi:
 
+networks:
+    meet.jitsi:
