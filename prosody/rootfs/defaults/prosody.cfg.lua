@@ -178,12 +178,11 @@ Include "conf.d/*.cfg.lua"
 turncredentials_secret = "{{ .Env.TURN_SECRET | default "keepthissecret" }}";
 turncredentials_port = {{ .Env.TURN_PORT | default "3478" }};
 turncredentials_ttl = {{ .Env.TURN_TTL | default "86400" }};
-turncredentials = {
 {{ if .Env.TURN_HOST }}
-  { type = "{{ .Env.TURN_PROTO | default "turns" }}",
+turncredentials = { { type = "{{ .Env.TURN_PROTO | default "turns" }}",
     host = "{{ .Env.TURN_HOST }}",
     port = {{ .Env.TURN_PORT | default "3478" }},
-    transport = "{{ .Env.TURN_TRANSPORT | default "tcp" }}"
-  }
+    transport = "{{ .Env.TURN_TRANSPORT | default "tcp" }}",
+  } }
 {{ end }}
 {{ end }}

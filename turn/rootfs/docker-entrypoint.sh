@@ -1,4 +1,5 @@
 #!/bin/bash
+set -xe
 
 mkdir -p /config/keys
 # make certs if not exist
